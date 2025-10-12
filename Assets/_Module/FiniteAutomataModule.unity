@@ -2941,7 +2941,6 @@ GameObject:
   - component: {fileID: 1639602091}
   - component: {fileID: 1639602090}
   - component: {fileID: 1639602089}
-  - component: {fileID: 1639602088}
   - component: {fileID: 1639602087}
   m_Layer: 0
   m_Name: FiniteAutomataModule
@@ -2975,18 +2974,6 @@ MonoBehaviour:
   _up_zone: {fileID: 932312107}
   _down_zone: {fileID: 301917342}
   _moduleSelect: {fileID: 1639602089}
---- !u!114 &1639602088
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 114041841252732024, guid: 8a7c243548327a24da44e4ae60d871d3,
-    type: 2}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1639602086}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1639602089
 MonoBehaviour:
   m_ObjectHideFlags: 0

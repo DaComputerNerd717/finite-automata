@@ -166,12 +166,15 @@ partial class FiniteAutomataModule
 
     private IEnumerator SetPage(int page)
     {
-        while (this.page != page)
+        int currentPage = this.page;
+        while (currentPage != page)
         {
             yield return _rightButton;
             yield return null;
             yield return _rightButton; //release button
             yield return null;
+            currentPage++;
+            currentPage %= (REGEX_PAGES + 1); //wrap around if we were on page 5
         }
         yield break;
     }
