@@ -128,13 +128,13 @@ public partial class FiniteAutomataModule : MonoBehaviour
             //    return;
             //}
             OpTree tree = GenerateOpTree();
+            Log($"Regex {i}: {tree.ToFormalRegexString()}");
             //Debug.Log($"Tree {i} generated\n"+tree.ToFormalRegexString());
-            Debug.Assert(tree != null);
+            //Debug.Assert(tree != null);
             //tree.Flatten();
-            Debug.Assert(tree != null);
-
+            //Debug.Assert(tree != null);
             regexes[i] = tree;
-            Debug.Assert(regexes[i] != null);
+            //Debug.Assert(regexes[i] != null);
         }
         RedrawPage();
         /*
@@ -343,7 +343,8 @@ public partial class FiniteAutomataModule : MonoBehaviour
 
     private double ProbFunction(double x){
         //max(0, (1/max(1, x-9)) - 1/21)^0.3
-        return Math.Pow(Math.Max(0, (1 / Math.Max(1, x - MIN_REGEX_LENGTH + 1)) - 1 / (MAX_REGEX_LENGTH - MIN_REGEX_LENGTH + 1)), 0.3);
+        double term = 1.0 / (MAX_REGEX_LENGTH - MIN_REGEX_LENGTH + 1);
+        return Math.Pow(Math.Max(0, ((1+term) / Math.Max(1, x - MIN_REGEX_LENGTH + 1)) - term), 0.3);
     }
 
     private bool TurnPageLeft()
