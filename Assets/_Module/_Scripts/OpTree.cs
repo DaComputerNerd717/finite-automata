@@ -63,7 +63,7 @@ namespace DCN.FiniteAutomata
             count += children.Count - children.Where(child => child is EmptyTree).Count();
             foreach(var child in GetChildren())
             {
-                count += child.GetOpCount(count);
+                count = child.GetOpCount(count);
             }
             return count;
         }

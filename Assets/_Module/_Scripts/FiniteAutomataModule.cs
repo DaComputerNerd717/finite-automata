@@ -33,33 +33,20 @@ public partial class FiniteAutomataModule : MonoBehaviour
     const int goalFlag = 2, startFlag = 1;
     int currentRowDisplayed = 0;
 
-    [SerializeField]
     private KMSelectable _leftButton;
-    [SerializeField]
     private KMSelectable _rightButton;
-    [SerializeField]
     private KMSelectable _submitButton;
 
-    [SerializeField]
     private Text _text;
-    [SerializeField]
     private KMSelectable _a1_zone;
-    [SerializeField]
     private KMSelectable _a2_zone;
-    [SerializeField]
     private KMSelectable _b1_zone;
-    [SerializeField]
     private KMSelectable _b2_zone;
-    [SerializeField]
     private KMSelectable _label1_zone;
-    [SerializeField]
     private KMSelectable _label2_zone;
-    [SerializeField]
     private KMSelectable _up_zone;
-    [SerializeField]
     private KMSelectable _down_zone;
 
-    [SerializeField]
     private KMSelectable _moduleSelect;
 
     private KMSelectable[] allChildren;
@@ -81,26 +68,33 @@ public partial class FiniteAutomataModule : MonoBehaviour
         _bombInfo = GetComponent<KMBombInfo>(); // (*)
         // _audio = GetComponent<KMAudio>();
 
+        _moduleSelect = _module.GetComponent<KMSelectable>();
+
+        _leftButton = _module.transform.Find("ModuleUI/Left Button").gameObject.GetComponent<KMSelectable>();
         _leftButton.OnInteract += TurnPageLeft;
+        _rightButton = _module.transform.Find("ModuleUI/Right Button").gameObject.GetComponent<KMSelectable>();
         _rightButton.OnInteract += TurnPageRight;
+        _submitButton = _module.transform.Find("ModuleUI/Submit Button").gameObject.GetComponent<KMSelectable>();
         _submitButton.OnInteract += Submit;
-        //_screen.OnInteract += OnScreenTouch;
+
+        _a1_zone = _module.transform.Find("ModuleUI/Screen/A1").gameObject.GetComponent<KMSelectable>();
         _a1_zone.OnInteract += OnA1Touch;
-        //_a1_zone.enabled = false;
+        _a2_zone = _module.transform.Find("ModuleUI/Screen/A2").gameObject.GetComponent<KMSelectable>();
         _a2_zone.OnInteract += OnA2Touch;
-        //_a2_zone.enabled = false;
+        _b1_zone = _module.transform.Find("ModuleUI/Screen/B1").gameObject.GetComponent<KMSelectable>();
         _b1_zone.OnInteract += OnB1Touch;
-        //_b1_zone.enabled = false;
+        _b2_zone = _module.transform.Find("ModuleUI/Screen/B2").gameObject.GetComponent<KMSelectable>();
         _b2_zone.OnInteract += OnB2Touch;
-        //_b2_zone.enabled = false;
+        _label1_zone = _module.transform.Find("ModuleUI/Screen/Label1").gameObject.GetComponent<KMSelectable>();
         _label1_zone.OnInteract += OnLabel1Touch;
-        //_label1_zone.enabled = false;
+        _label2_zone = _module.transform.Find("ModuleUI/Screen/Label2").gameObject.GetComponent<KMSelectable>();
         _label2_zone.OnInteract += OnLabel2Touch;
-        //_label2_zone.enabled = false;
+        _up_zone = _module.transform.Find("ModuleUI/Screen/Up").gameObject.GetComponent<KMSelectable>();
         _up_zone.OnInteract += OnUpTouch;
-        //_up_zone.enabled = false;
+        _down_zone = _module.transform.Find("ModuleUI/Screen/Down").gameObject.GetComponent<KMSelectable>();
         _down_zone.OnInteract += OnDownTouch;
         //_down_zone.enabled = false;
+        _text = _module.transform.Find("ModuleUI/Screen/Canvas/Text").gameObject.GetComponent<Text>();
 
         _module.OnActivate += Activate;
 
