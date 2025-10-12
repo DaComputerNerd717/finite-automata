@@ -283,7 +283,7 @@ public partial class FiniteAutomataModule : MonoBehaviour
                     break;
             }
             if (tree == null)
-                Debug.LogError("how");
+                Log("somehow generated a null tree");
             //Debug.Log("Generated tree:\n"+tree.ToString());
             return tree;
         }
