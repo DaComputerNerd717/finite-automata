@@ -363,7 +363,7 @@ public partial class FiniteAutomataModule : MonoBehaviour
 
     private bool isRowValid(int[] row)
     {
-        return row.Length == 4 && row[1] > 0 && row[2] > 0 && row[3] > 0;
+        return row.Length == 4 && row[1] > 0 && row[2] > 0 && row[3] > 0 && row[1] <= tableRows.Count && row[2] <= tableRows.Count && row[3] <= tableRows.Count;
     }
     
     private bool Submit()
@@ -373,6 +373,9 @@ public partial class FiniteAutomataModule : MonoBehaviour
         TreeNFA submittedTree = new TreeNFA();
         //List<int[]> validRows = tableRows.Where(row => row.Length == 4 && row[1]>0 && row[2]>0 && row[3]>0).OrderBy(row => row[1]).ToList();
         //Log("Valid rows determined");
+
+        List<int> validRows = FindValidRows();
+
         for(int i = 0; i < tableRows.Count; i++)
         {
             //if (iterationCount++ > 10000)
@@ -381,13 +384,14 @@ public partial class FiniteAutomataModule : MonoBehaviour
             //    return;
             //}
             int[] row = tableRows[i];
-            if (isRowValid(row))
+            if (validRows.Contains(i))
                 submittedTree.AddNode((row[0] & startFlag) != 0, (row[0] & goalFlag) != 0);
             else
                 submittedTree.AddNode(); //spacer so we don't have to adjust references
             //Log($"Added node: {submittedTree.GetNode(i).start} {submittedTree.GetNode(i).goal} {row[1]} {row[2]} {row[3]}");
         }
-        for(int i = 0; i < tableRows.Count; i++)
+        //If we only connect the valid rows, all invalid rows will be trimmed in TrimDisconnected
+        foreach(int i in validRows)
         {
             //if (iterationCount++ > 10000)
             //{
@@ -396,8 +400,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
             //}
             //UnityEngine.Debug.Assert(iterationCount++ < 100000);
             int[] row = tableRows[i];
-            if (!isRowValid(row))
-                continue;
             submittedTree.AddEdge(row[1]-1, row[2]-1, A.INSTANCE); //1-indexed to 0-indexed
             //Log($"Connected node {row[1]} to node {row[2]}");
             submittedTree.AddEdge(row[1]-1, row[3]-1, B.INSTANCE);
@@ -420,6 +422,39 @@ public partial class FiniteAutomataModule : MonoBehaviour
             Strike($"Incorrect answer: {reason}");
         }
         return false;
+    }
+
+    private List<int> FindValidRows()
+    {
+        Queue<int> newlyInvalid = new Queue<int>();
+        List<int> stillValid = new List<int>();
+        for (int i = 0; i < tableRows.Count; i++)
+        {
+            if (isRowValid(tableRows[i]))
+            {
+                stillValid.Add(i);
+            }
+            else
+            {
+                newlyInvalid.Enqueue(i);
+            }
+        }
+        //any row which references an invalid row is invalid
+        while(newlyInvalid.Count > 0)
+        {
+            int newInvalid = newlyInvalid.Dequeue();
+            for(int i = 0; i < tableRows.Count; i++)
+            {
+                if (!stillValid.Contains(i)) //no need to invalidate invalid rows
+                    continue;
+                if (tableRows[i][2] == tableRows[newInvalid][1] || tableRows[i][3] == tableRows[newInvalid][1]) //a or b destination invalid, so i is invalid too
+                {
+                    stillValid.Remove(i);
+                    newlyInvalid.Enqueue(i);
+                }
+            }
+        }
+        return stillValid;
     }
 
     private bool OnA1Touch()

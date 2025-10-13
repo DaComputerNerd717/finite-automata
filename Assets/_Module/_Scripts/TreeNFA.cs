@@ -389,6 +389,16 @@ namespace DCN.FiniteAutomata{
 				cause = "One of the NFAs was invalid";
                 return false;
 			}
+			if(this.nodes.Count == 0)
+			{
+				cause = "Submitted NFA has no valid nodes";
+				return false;
+			}
+			if(other.nodes.Count == 0)
+			{
+				cause = "Correct NFA has no valid nodes. This is a bug.";
+				return false;
+			}
 			if(this.nodes.Where(n => n.start).Count() != 1) //this has no start, or too many
 			{
 				//UnityEngine.Debug.Log(ToString());
@@ -398,11 +408,11 @@ namespace DCN.FiniteAutomata{
             if (other.nodes.Where(n => n.start).Count() != 1) //other has no start, or too many
             {
 				//UnityEngine.Debug.Log(other.ToString());
-				cause = "Correct NFA does not have exactly 1 start. This is an error.";
+				cause = "Correct NFA does not have exactly 1 start. This is a bug.";
                 return false;
             }
             if (!isValid){ //both must be equal so this means both are invalid
-				cause = "Both NFAs are invalid";
+				cause = "Both NFAs are invalid. They are equal, but this is likely a bug.";
 				return true;
 			}
 			TreeNFA diff1 = this.DoComplement().DoIntersection(other);
