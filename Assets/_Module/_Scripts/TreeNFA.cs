@@ -449,7 +449,7 @@ namespace DCN.FiniteAutomata{
 					sb.Append(">");
 				if (nodes[i].goal)
 					sb.Append("+");
-				sb.Append(i);
+				sb.Append(i+1);
 				sb.Append("\t");
 				bool first = true;
 				foreach (var edge in nodes[i].outEdges)
@@ -465,7 +465,7 @@ namespace DCN.FiniteAutomata{
 						sb.Append(" ");
                     sb.Append(edge.tree.ToFormalRegexString());
 					sb.Append(":");
-                    sb.Append(edge.toDex);
+                    sb.Append(edge.toDex+1);
 				}
 				sb.AppendLine();
             }

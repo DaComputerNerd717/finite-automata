@@ -24,8 +24,10 @@ public partial class FiniteAutomataModule : MonoBehaviour
     private const int MAX_REGEX_LENGTH = 30, MIN_REGEX_LENGTH = 10, REGEX_PAGES = 5;
 
     OpTree[] regexes = new OpTree[REGEX_PAGES];
+    public string[] regex_strings = new string[REGEX_PAGES];
     TreeNFA correctDFA = null;
     int page = 0;
+    private bool isSolved = false;
     /// <summary>
     /// Rows contain 4 elements: Flags, origin, A destination, B destination. Flags are defined as (2 if goal) + (1 if start). Destination=0 is blank.
     /// </summary>
@@ -122,12 +124,14 @@ public partial class FiniteAutomataModule : MonoBehaviour
             //    return;
             //}
             OpTree tree = GenerateOpTree();
-            Log($"Regex {i}: {tree.ToFormalRegexString()}");
+            
             //Debug.Log($"Tree {i} generated\n"+tree.ToFormalRegexString());
             //Debug.Assert(tree != null);
             //tree.Flatten();
             //Debug.Assert(tree != null);
             regexes[i] = tree;
+            regex_strings[i] = tree.ToFormalRegexString();
+            Log($"Regex {i}: {regex_strings[i]}");
             //Debug.Assert(regexes[i] != null);
         }
         RedrawPage();
@@ -245,6 +249,8 @@ public partial class FiniteAutomataModule : MonoBehaviour
 
     public void Solve() {
         Log("◯ Module solved!");
+        SetPage(REGEX_PAGES); //go to answer page if not already there
+        isSolved = true;
         _module.HandlePass();
         // * Add code that should execute on solve (eg. a solve animation) here.
     }
@@ -343,21 +349,27 @@ public partial class FiniteAutomataModule : MonoBehaviour
 
     private bool TurnPageLeft()
     {
-        //Log("Left button pressed");
-        page--;
-        if (page < 0) page += (REGEX_PAGES + 1);
-        //Log("Going to page " + page);
-        RedrawPage();
+        if (!isSolved)
+        {
+            //Log("Left button pressed");
+            page--;
+            if (page < 0) page += (REGEX_PAGES + 1);
+            //Log("Going to page " + page);
+            RedrawPage();
+        }
         return false;
     }
 
     private bool TurnPageRight()
     {
-        //Log("Right button pressed");
-        page++;
-        if(page > REGEX_PAGES) page -= (REGEX_PAGES + 1);
-        //Log("Going to page " + page);
-        RedrawPage();
+        if (!isSolved)
+        {
+            //Log("Right button pressed");
+            page++;
+            if (page > REGEX_PAGES) page -= (REGEX_PAGES + 1);
+            //Log("Going to page " + page);
+            RedrawPage();
+        }
         return false;
     }
 
@@ -612,12 +624,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
             
         }
     }
-
-    const string blCorner = "└",      brCorner = "┘",        trCorner = "┐",         tlCorner = "┌",
-                 vert = "│",          vertHeavy = "┃",       horiz = "─",            horizHeavy = "━",
-                 tBottomHeavy = "┸",  tTopHeavy = "┰",       tLeftHeavy = "┝",       tRightHeavy = "┥",
-                 tBottom = "┴",       tTop = "┬",            tRight = "┤",           tLeft = "├",
-                 cross = "┼",         crossHeavyVert = "╂",  crossHeavyHoriz = "┿",  crossHeavy = "╋";
 
     private string BuildTableRows(int rowStart, int rowCount)
     {
