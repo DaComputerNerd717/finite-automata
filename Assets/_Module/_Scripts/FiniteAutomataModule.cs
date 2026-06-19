@@ -146,19 +146,25 @@ public partial class FiniteAutomataModule : MonoBehaviour
         //*/
         
         //*
+        
+    }
+
+    // * Called once the lights turn on.
+    private void Activate() {
         IEnumerable<int> digits = _bombInfo.GetSerialNumberNumbers();
         //IEnumerable<int> digits = new int[] { 1, 3, 0, 7};
-        if ((digits.Count() & 1) == 1) { //odd number of digits, solution based on middle digit
+        if ((digits.Count() & 1) == 1)
+        { //odd number of digits, solution based on middle digit
             int dex = digits.ElementAt((digits.Count() - 1) / 2);
             bool complement = dex > 4;
             dex %= 5;
             //Mark this or the complement as the correct one, set the answer FA to this one's
             correctDFA = new TreeNFA(regexes[dex]);
-            //Debug.Log("TG:");
-            //Debug.Log(correctDFA.ToString());
+
             correctDFA = correctDFA.ToDFA();
             //Debug.Log(correctDFA.ToString());
-            if (!correctDFA.isValid) {
+            if (!correctDFA.isValid)
+            {
                 Debug.LogError("DFA invalid (single case)");
                 Debug.LogError(correctDFA.ToString());
                 return;
@@ -168,9 +174,12 @@ public partial class FiniteAutomataModule : MonoBehaviour
                 //Debug.Log("Complementing");
                 correctDFA = correctDFA.DoComplement();
             }
-            Debug.Log("Final correct DFA: " + correctDFA.ToString());
+            correctDFA = correctDFA.Optimized();
+            Log("Final correct DFA:\n" + correctDFA.ToString());
+
         }
-        else{ //even number of digits, solution based on first and last digits
+        else
+        { //even number of digits, solution based on first and last digits
             int firstDex = digits.First();
             int secondDex = digits.Last();
             bool doUnion = firstDex <= secondDex; //if nondecreasing, use union, else intersection
@@ -183,7 +192,8 @@ public partial class FiniteAutomataModule : MonoBehaviour
             //Debug.Log("TG 1");
             //Debug.Log(dfa1.ToString());
             dfa1 = dfa1.ToDFA();
-            if (!dfa1.isValid) {
+            if (!dfa1.isValid)
+            {
                 Debug.LogError("DFA1 invalid");
                 Debug.LogError(dfa1.ToString());
                 return;
@@ -219,13 +229,11 @@ public partial class FiniteAutomataModule : MonoBehaviour
                 //Debug.Log("Intersection:");
                 correctDFA = dfa1.DoIntersection(dfa2);
             }
-            Log("Final correct DFA: " + correctDFA.ToString());
+            correctDFA = correctDFA.Optimized();
+            Log("Final correct DFA:\n" + correctDFA.ToString());
         }
         //*/
     }
-
-    // * Called once the lights turn on.
-    private void Activate() { }
 
     // * Update is called every frame. I don't typically use Update in the main script.
     // ! Do not perform resource-intensive tasks here as they will be called every frame and can slow the game down.
@@ -239,7 +247,13 @@ public partial class FiniteAutomataModule : MonoBehaviour
     // private void OnBombExploded() { } // Requires (*) and (**)
     // private void OnBombSolved() { } // Requires (*) and (***)
 
-    public void Log(string message) => Debug.Log($"[{_module.ModuleDisplayName} #{_moduleId}] {message}");
+    public void Log(string message)
+    {
+        string tag = $"[{_module.ModuleDisplayName} #{_moduleId}] ";
+        string nltag = "\n" + tag;
+        message = message.Trim().Replace("\n", nltag);
+        Debug.Log(tag + message);
+    }
 
     public void Strike(string message) {
         Log($"✕ {message}");
@@ -387,14 +401,8 @@ public partial class FiniteAutomataModule : MonoBehaviour
         //Log("Valid rows determined");
 
         List<int> validRows = FindValidRows();
-
         for(int i = 0; i < tableRows.Count; i++)
         {
-            //if (iterationCount++ > 10000)
-            //{
-            //    //Debug.LogError("Infinite loop");
-            //    return;
-            //}
             int[] row = tableRows[i];
             if (validRows.Contains(i))
                 submittedTree.AddNode((row[0] & startFlag) != 0, (row[0] & goalFlag) != 0);
@@ -405,12 +413,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
         //If we only connect the valid rows, all invalid rows will be trimmed in TrimDisconnected
         foreach(int i in validRows)
         {
-            //if (iterationCount++ > 10000)
-            //{
-            //    //Debug.LogError("Infinite loop");
-            //    return;
-            //}
-            //UnityEngine.Debug.Assert(iterationCount++ < 100000);
             int[] row = tableRows[i];
             submittedTree.AddEdge(row[1]-1, row[2]-1, A.INSTANCE); //1-indexed to 0-indexed
             //Log($"Connected node {row[1]} to node {row[2]}");
@@ -590,13 +592,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
             _moduleSelect.Children = (KMSelectable[])allChildren.Clone();
             for (int i = 3; i < allChildren.Length; i++)
             {
-                //if (iterationCount++ > 10000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite loop");
-                //    return;
-                //}
-                //allChildren[i].Parent = _moduleSelect;
-                //allChildren[i].enabled = true;
                 allChildren[i].gameObject.SetActive(true);
             }
             _moduleSelect.UpdateChildrenProperly();
@@ -609,12 +604,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
             _moduleSelect.Children = (KMSelectable[])regexChildren.Clone();
             for (int i = 3; i < allChildren.Length; i++)
             {
-                //if (iterationCount++ > 10000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite loop");
-                //    return;
-                //}
-                //allChildren[i].Parent = null;
                 allChildren[i].gameObject.SetActive(false);
             }
             _moduleSelect.UpdateChildrenProperly();
@@ -627,7 +616,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
 
     private string BuildTableRows(int rowStart, int rowCount)
     {
-        //iterationCount = 0;
         StringBuilder sb = new StringBuilder();
         sb.AppendLine(PadToLength("↑", 17));
         sb.AppendLine("┌───────┰───┬───┐");
@@ -635,12 +623,6 @@ public partial class FiniteAutomataModule : MonoBehaviour
         bool first = true;
         for (int i = rowStart; i < rowStart + rowCount; i++)
         {
-            //if (iterationCount++ > 10000)
-            //{
-            //    UnityEngine.Debug.LogError("Infinite loop");
-            //    return null;
-            //}
-            //UnityEngine.Debug.Assert(iterationCount++ < 100000);
             if (i >= tableRows.Count)
                 break;
             int[] row = tableRows[i];
@@ -681,22 +663,12 @@ public partial class FiniteAutomataModule : MonoBehaviour
         string result = "";
         for (int i = 0; i < leftSpaces; i++)
         {
-            //if (iterationCount++ > 10000)
-            //{
-            //    UnityEngine.Debug.LogError("Infinite loop");
-            //    return null;
-            //}
             result += " ";
         }
             
         result += str;
         for(int i = 0;i < rightSpaces; i++)
         {
-            //if (iterationCount++ > 10000)
-            //{
-            //    UnityEngine.Debug.LogError("Infinite loop");
-            //    return null;
-            //}
             result += " ";
         }
         return result;

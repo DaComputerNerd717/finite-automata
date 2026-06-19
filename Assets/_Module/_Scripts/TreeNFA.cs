@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using UnityEngine;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine;
 
 namespace DCN.FiniteAutomata{
 	public class TreeNFA {
@@ -66,6 +69,8 @@ namespace DCN.FiniteAutomata{
 		public int AddEdge(Edge e){
 			if (e.tree is EmptyTree)
 				return -1;
+			//if (edges.Any(edge => edges.Equals(e)))
+			//	return edges.IndexOf(e);
 			e.to.inEdges.Add(e);
 			e.from.outEdges.Add(e);
 			edges.Add(e);
@@ -93,11 +98,18 @@ namespace DCN.FiniteAutomata{
 		}
 
 		public void RemoveNode(Node n){
-            for (int i = 0; i < n.outEdges.Count; i++){
-				RemoveEdge(n.outEdges[i]);
+			int iterCount = 0;
+            while(n.outEdges.Count > 0){
+				if (iterCount >= 10000)
+				{
+					UnityEngine.Debug.Log("Failed to remove out edges");
+					return;
+				}
+				RemoveEdge(n.outEdges[0]);
 			}
-			for(int i = 0; i < n.inEdges.Count; i++){
-				RemoveEdge(n.inEdges[i]);
+			iterCount = 0;
+			while(n.inEdges.Count > 0){
+                RemoveEdge(n.inEdges[0]);
 			}
             nodes.Remove(n);
 			//Update indices now that the node's removed
@@ -121,9 +133,10 @@ namespace DCN.FiniteAutomata{
 
 		private void UpdateIndices(bool notify = true)
 		{
+			int iterCount = 0;
 			for (int i = 0; i < nodes.Count; i++)
 			{
-				foreach(Edge e in nodes[i].outEdges)
+                foreach (Edge e in nodes[i].outEdges)
 				{
 					if (notify && e.fromDex != i)
 						UnityEngine.Debug.LogError($"Node {i} is connected to node {e.toDex} on {e.tree} but this edge has fromDex={e.fromDex}");
@@ -147,8 +160,9 @@ namespace DCN.FiniteAutomata{
 		public static TreeNFA DoComplement(TreeNFA tree){
 			bool goal = tree.nodes[0].goal;
 			TreeNFA newTree = new TreeNFA(tree);
+			int iterCount = 0;
 			foreach(Node n in newTree.nodes){
-				n.goal = !n.goal;
+                n.goal = !n.goal;
 			}
 			UnityEngine.Debug.Assert(tree.nodes[0].goal == goal);
 			return newTree;
@@ -204,22 +218,24 @@ namespace DCN.FiniteAutomata{
 			//UnityEngine.Debug.Log("DFA a\n"+a.ToString());
 			//UnityEngine.Debug.Log("DFA b\n"+b.ToString());
 			int[,] groupNodes = new int[a.nodes.Count, b.nodes.Count];
+			int iterCount = 0;
 			for(int i = 0; i < a.nodes.Count; i++){
-				for(int j = 0; j < b.nodes.Count; j++){
+                for (int j = 0; j < b.nodes.Count; j++){
 					groupNodes[i,j] = -1; //default value
-				}
+                }
 			}
             a.UpdateIndices();
             b.UpdateIndices();
             int startDexA = -1;
+			iterCount = 0;
 			for(int i = 0; i < a.nodes.Count; i++)
 			{
-				if (a.nodes[i].start) startDexA = i;
+                if (a.nodes[i].start) startDexA = i;
 			}
 			int startDexB = -1;
 			for(int i = 0; i < b.nodes.Count; i++)
 			{
-				if (b.nodes[i].start) startDexB = i;
+                if (b.nodes[i].start) startDexB = i;
 			}
 			if(startDexA == -1)
 			{
@@ -239,18 +255,14 @@ namespace DCN.FiniteAutomata{
 			groupNodes[startDexA, startDexB] = startDex; 
 			Queue<int[]> frontier = new Queue<int[]>();
 			frontier.Enqueue(new int[]{startDexA, startDexB});
+			iterCount = 0;
 			while(frontier.Count > 0){
-				//if(iterationCount++ > 100000)
-				//{
-				//	UnityEngine.Debug.LogError("Infinite Loop");
-				//	return null;
-				//}
-				int[] dexes = frontier.Dequeue();
+                int[] dexes = frontier.Dequeue();
 				//Find the destinations for each graph for each input
 				//Naming scheme: graphByInput
 				int aByA = -1, aByB = -1, bByA = -1, bByB = -1; //All will be set 
 				for(int i = 0; i < 2; i++){ //Since it's a DFA, we know all nodes have length 2
-					Node aNode = a.nodes[dexes[0]];
+                    Node aNode = a.nodes[dexes[0]];
 					if (aNode.outEdges.Count != 2)
 						UnityEngine.Debug.LogError("A node is missing outgoing edges?\n" + a.ToString());
 					Edge eA = aNode.outEdges[i];
@@ -349,27 +361,30 @@ namespace DCN.FiniteAutomata{
 			Queue<int> frontier = new Queue<int>();
 			frontier.Enqueue(start);
             HashSet<int> connected = new HashSet<int>();
+			int iterCount = 0;
             do
 			{
-				int dex = frontier.Dequeue();
+                int dex = frontier.Dequeue();
                 connected.Add(dex);
 				foreach (Edge e in nodes[dex].outEdges)
 				{
-					if (!connected.Contains(e.toDex))
+                    if (!connected.Contains(e.toDex))
 					{
 						frontier.Enqueue(e.toDex);
 					}
 				}
 			} while (frontier.Count > 0);
 			List<Node> toRemove = new List<Node>();
+			iterCount = 0;
 			for (int i = 0; i < connected.Count; i++)
 			{
-				if(!connected.Contains(i))
+                if (!connected.Contains(i))
 					toRemove.Add(nodes[i]);
 			}
+			iterCount = 0;
 			foreach(Node n in toRemove)
 			{
-				RemoveNode(n);
+                RemoveNode(n);
 			}
 		}
 
@@ -383,10 +398,15 @@ namespace DCN.FiniteAutomata{
 			return this.nodes.Where(n => n.start).Any();
         }
 
+		public Node GetStart()
+		{
+			return this.nodes.Where(n => n.start).FirstOrDefault();
+		}
+
         public bool IsEqual(TreeNFA other, out string cause)
         {
 			if(isValid != other.isValid){ //either invalid
-				cause = "One of the NFAs was invalid";
+				cause = "One of the NFAs was invalid. This may be a bug.";
                 return false;
 			}
 			if(this.nodes.Count == 0)
@@ -412,12 +432,12 @@ namespace DCN.FiniteAutomata{
                 return false;
             }
             if (!isValid){ //both must be equal so this means both are invalid
-				cause = "Both NFAs are invalid. They are equal, but this is likely a bug.";
+				cause = "Both NFAs are invalid. They are equal, but this is probably a bug.";
 				return true;
 			}
-			TreeNFA diff1 = this.DoComplement().DoIntersection(other);
+			TreeNFA diff1 = this.DoComplement().DoIntersection(other).Optimized();
 			//Debug.Log("correct - input:\n" + diff1.ToString());
-			TreeNFA diff2 = other.DoComplement().DoIntersection(this);
+			TreeNFA diff2 = other.DoComplement().DoIntersection(this).Optimized();
 			//Debug.Log("input - correct:\n" + diff2.ToString()); 
 			UnityEngine.Debug.Assert(diff1.isValid);
 			UnityEngine.Debug.Assert(diff2.isValid);
@@ -438,13 +458,9 @@ namespace DCN.FiniteAutomata{
 			//var oldCount = iterationCount;
 			//iterationCount = 0;
 			StringBuilder sb = new StringBuilder();
+			int iterCount = 0;
 			for (int i = 0; i < this.nodes.Count; i++)
 			{
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite loop");
-                //    return null;
-                //}
                 if (nodes[i].start)
 					sb.Append(">");
 				if (nodes[i].goal)
@@ -454,11 +470,6 @@ namespace DCN.FiniteAutomata{
 				bool first = true;
 				foreach (var edge in nodes[i].outEdges)
 				{
-                    //if (iterationCount++ > 100000)
-                    //{
-                    //    UnityEngine.Debug.LogError("Infinite loop");
-                    //    return null;
-                    //}
                     if (first)
 						first = false;
 					else 
@@ -473,72 +484,148 @@ namespace DCN.FiniteAutomata{
 			return sb.ToString();
 		}
 
-		public void RemoveDisconnectedNodes()
+		/// <summary>
+		/// Optimizes the DFA
+		/// </summary>
+		/// <returns>true if a change was made, otherwise false</returns>
+		public TreeNFA Optimized()
 		{
-			int startState = nodes.FindIndex(node => node.start);
-            if (startState == -1) //all states are disconnected if there is no start state
-            {
-				nodes.Clear();
-				edges.Clear();
-				AddNode(true, false);
-				return;
-            }
-			reachedEdges.Clear();
-			reachedNodes.Clear();
-			couldReachGoal.Clear();
-			FindNodesReachingGoal(startState);
-			var toRemove = new List<int>();
-			//Nodes we reached, but couldn't get to a goal from
-			toRemove.AddRange(couldReachGoal.Where(kv => !kv.Value).Select(kv => kv.Key));
-			//Nodes we couldn't even reach
-			toRemove.AddRange(Enumerable.Range(0, nodes.Count).Where(x => !reachedNodes.Contains(x)));
-			if (toRemove.Count == 0)
-				return;
-			int bh = AddNode(false, false);
-			for(int i = 0; i < edges.Count; i++)
+            //UnityEngine.Debug.Log("[Finite Automata #0] Starting optimizing");
+            if (!HasStart())
+				return this;
+			Node start = GetStart();
+			//If there is no goal, or all states are goals, it's an easy return
+			if(!nodes.Any(n => n.goal) || nodes.All(n => n.goal))
 			{
-				if (toRemove.Contains(edges[i].toDex))
-				{
-					SetEdgeTo(edges[i], bh);
-				}
+				TreeNFA basicResult = new TreeNFA();
+				int x = basicResult.AddNode(true, start.goal);
+				basicResult.AddEdge(x, x, A.INSTANCE);
+				basicResult.AddEdge(x, x, B.INSTANCE);
+				return basicResult;
 			}
-			foreach (var node in toRemove)
-				RemoveNode(node);
-			//UnityEngine.Debug.Log(ToString());
+			//First, identify unreachable nodes
+			//UnityEngine.Debug.Log("[Finite Automata #0] Identifying reachable nodes");
+			//         List<Node> frontier = new List<Node> { start };
+			//List<Node> reachable = new List<Node>{ start };
+			//while(frontier.Count > 0)
+			//{
+			//	Node next = frontier[0];
+			//	frontier.RemoveAt(0);
+			//	foreach(Edge e in next.outEdges)
+			//	{
+			//		if (!reachable.Contains(e.to))
+			//		{
+			//                     //UnityEngine.Debug.Log($"[Finite Automata #0] Node {e.toDex} is reachable");
+			//                     reachable.Add(e.to);
+			//			frontier.Add(e.to);
+			//		}
+			//	}
+			//}
+			TrimDisconnected();
+
+			//next, partition by goal and nongoal
+            List<List<Node>> partitions = new List<List<Node>>() { new List<Node>(), new List<Node>() };
+			foreach(Node node in nodes)
+			{
+				partitions[node.goal ? 1 : 0].Add(node);
+			}
+			//UnityEngine.Debug.Log("[Finite Automata #0] Initial partition complete");
+			bool changed;
+			do
+			{
+				changed = false;
+				for (int part = 0; part < partitions.Count; part++)
+				{
+					//UnityEngine.Debug.Log($"[Finite Automata #0] Splitting partiton {part} of {partitions.Count}");
+					//UnityEngine.Debug.Log($"[Finite Automata #0] Partitions:\n{DebugPartition(partitions)}");
+					List<int> alreadyGrouped = new List<int>();
+					List<List<Node>> splits = new List<List<Node>>();
+					Dictionary<int, Dictionary<int, List<Node>>> nodesByDest = new Dictionary<int, Dictionary<int, List<Node>>>();
+					foreach(Node n in partitions[part])
+					{
+						Node forA = n.ForA();
+						Node forB = n.ForB();
+						int iByA = partitions.IndexOf(partition => partition.Contains(forA));
+						int iByB = partitions.IndexOf(partition => partition.Contains(forB));
+						if (iByA == -1)
+							UnityEngine.Debug.Log("[Finite Automata #0] Optimization has produced an invalid a transition. This is a bug.");
+						if (iByB == -1)
+							UnityEngine.Debug.Log("[Finite Automata #0] Optimization has produced an invalid b transition. This is a bug.");
+						if(!nodesByDest.ContainsKey(iByA))
+							nodesByDest[iByA] = new Dictionary<int, List<Node>>();
+						if (!nodesByDest[iByA].ContainsKey(iByB))
+							nodesByDest[iByA][iByB] = new List<Node>();
+						nodesByDest[iByA][iByB].Add(n);
+					}
+					foreach(int byA in nodesByDest.Keys)
+					{
+						foreach(int byB in nodesByDest[byA].Keys)
+						{
+							splits.Add(nodesByDest[byA][byB]);
+						}
+					}
+                    if (splits.Count > 1)
+					{
+                        //UnityEngine.Debug.Log($"[Finite Automata #0] Split partition {part} in {splits.Count}");
+						//UnityEngine.Debug.Log($"[Finite Automata #0] Splits:\n{DebugPartition(splits)}");
+                        partitions.RemoveAt(part);
+						partitions.AddRange(splits);
+                        changed = true;
+                        break;
+					}
+				}
+			} while (changed);
+            //We have now split the partitions as much as we need to
+            //Now, create a new DFA with a single node per partition, and the destinations based on the dests dict
+            //UnityEngine.Debug.Log("Final partitions:\n" + DebugPartition(partitions));
+			//UnityEngine.Debug.Log("[Finite Automata #0] Adding nodes to result DFA");
+            TreeNFA result = new TreeNFA();
+			for(int i = 0; i < partitions.Count; i++)
+			{
+				int dex = result.AddNode(partitions[i].Any(n => n.start), partitions[i].Any(n => n.goal));
+                //UnityEngine.Debug.Log("[Finite Automata #0] Result node added: " + dex);
+            }
+            //UnityEngine.Debug.Log("[Finite Automata #0] Adding edges to result DFA");
+            for (int i = 0; i < partitions.Count; i++)
+			{
+                //Connecting the partitions will be a challenge
+                Node member = partitions[i][0];
+				Node nodeByA = member.ForA();
+				Node nodeByB = member.ForB();
+				//now to find these
+				int byA = partitions.IndexOf(part => part.Contains(nodeByA));
+				if (byA == -1)
+					UnityEngine.Debug.Log("[Finite Automata #0] An a transition goes to a node which is not in a partition. This is a bug.");
+				int byB = partitions.IndexOf(part => part.Contains(nodeByB));
+				if (byB == -1) 
+					UnityEngine.Debug.Log("[Finite Automata #0] A b transition goes to a node which is not in a partition. This is a bug.");
+				//UnityEngine.Debug.Log($"Adding edges from node {i} to {byA} and {byB}");
+				result.AddEdge(i, byA, A.INSTANCE);
+				result.AddEdge(i, byB, B.INSTANCE);
+            }
+			return result;
         }
 
-		private List<Edge> reachedEdges = new List<Edge>();
-		private List<int> reachedNodes = new List<int>();
-		private Dictionary<int, bool> couldReachGoal = new Dictionary<int, bool>();
-		private bool FindNodesReachingGoal(int nodeDex)
+		public string DebugPartition(List<List<Node>> partitions)
 		{
-			bool found = false;
-			reachedNodes.Add(nodeDex);
-			couldReachGoal[nodeDex] = false;
-			if (nodes[nodeDex].goal)
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < partitions.Count; i++)
 			{
-                couldReachGoal[nodeDex] = true;
-                found = true;
-            }
-			foreach (Edge e in nodes[nodeDex].outEdges)
-			{
-				if (reachedEdges.Contains(e)) //already tried this edge, going in circles
-					continue;
-				reachedEdges.Add(e);
-				if(e.toDex == e.fromDex)
-					continue;
-				if(couldReachGoal.ContainsKey(e.toDex) && couldReachGoal[e.toDex]) //this is a cycle back, we found that this node already works
+				for (int j = 0; j < partitions[i].Count; j++)
 				{
-					couldReachGoal[nodeDex] = true;
-					found = true;
+					Node n = partitions[i][j];
+					int nDex = FindNode(n);
+					int aDex = FindNode(n.ForA());
+					int bDex = FindNode(n.ForB());
+					if (n.start)
+						sb.Append(">");
+					if (n.goal)
+						sb.Append("+");
+					sb.Append($"{nDex}\ta:{aDex} b:{bDex}\n");
 				}
-                if (FindNodesReachingGoal(e.toDex))
-                {
-                    couldReachGoal[nodeDex] = true;
-                    found = true;
-                }
+				sb.Append("\n");
 			}
-			return found;
+			return sb.ToString();
 		}
 
 		public OpTree ToOpTree()
@@ -573,14 +660,10 @@ namespace DCN.FiniteAutomata{
 				return EmptyTree.INSTANCE;
             //juust to be sure
             UpdateIndices();
+			int iterCount = 0;
 			bool changed;
 			do
 			{
-				//if(iterationCount++ > 200000)
-				//{
-				//	UnityEngine.Debug.LogError("Infinite Loop");
-				//	return null;
-				//}
                 changed = false;
                 List<Node> nodesToRemove = new List<Node>();
                 for (int i = 0; i < nodes.Count; i++)
@@ -597,21 +680,15 @@ namespace DCN.FiniteAutomata{
                 
                 for(int i = 0; i < nodes.Count; i++)
 				{
-					Node a = nodes[i];
+                    Node a = nodes[i];
 					for(int j = i+1; j < nodes.Count; j++)
 					{
 						Node b = nodes[j];
 						if (b.ShouldMerge(a))
 						{
-							while(a.inEdges.Count > 0)
+                            while (a.inEdges.Count > 0)
 							{
-								//UnityEngine.Debug.Log(a.inEdges.Count);
-								//if(iterationCount++ > 100000)
-								//{
-								//	UnityEngine.Debug.LogError("Infinite Loop");
-								//	return null;
-								//}
-								Edge e = a.inEdges[a.inEdges.Count-1];
+                                Edge e = a.inEdges[a.inEdges.Count-1];
 								SetEdgeTo(e, j); //move so it connects to b
 							}
 							//UnityEngine.Debug.Log("Loop exited");
@@ -627,17 +704,18 @@ namespace DCN.FiniteAutomata{
                 //Must happen before loop resolution; If we have parallel loops R and S, that must resolve not to R*|S* but to (R|S)*
                 //Resolve parallels. Do before chains since this reduces the edge creation
                 List<Edge> edgesToRemove = new List<Edge>();
+				iterCount = 0;
 				foreach (Node n in nodes)
 				{
-					for (int i = 0; i < n.outEdges.Count; i++)
+                    for (int i = 0; i < n.outEdges.Count; i++)
 					{
-						Edge a = n.outEdges[i];
+                        Edge a = n.outEdges[i];
 						for (int j = i + 1; j < n.outEdges.Count; j++)
 						{
-							Edge b = n.outEdges[j];
+                            Edge b = n.outEdges[j];
 							if (a.fromDex == b.fromDex && a.toDex == b.toDex)
 							{
-								b.tree = Union.Of(a.tree, b.tree);
+                                b.tree = Union.Of(a.tree, b.tree);
 								edgesToRemove.Add(a);
 								changed = true;
 								break; //don't want to continue comparing to a removed term; if there are 3, then it will be found when i is what j is now
@@ -645,25 +723,21 @@ namespace DCN.FiniteAutomata{
 						}
 					}
 				}
+				iterCount = 0;
 				foreach (Edge e in edgesToRemove) RemoveEdge(e);
 				if (changed) continue; //get another pass at branches before we move on to cycles, just to be sure we got em all
 				//Clear self-loops
 				foreach (Node n in nodes)
 				{
-					//Node n = nodes[i];
-					OpTree selfEdges = EmptyTree.INSTANCE;
+                    //Node n = nodes[i];
+                    OpTree selfEdges = EmptyTree.INSTANCE;
 					if (n.outEdges.Any(edge => edge.fromDex == edge.toDex))
 					{
 						//int dest = AddNode(false, n.goal);
 						foreach (Edge e in n.outEdges)
 						{
-                            //if (iterationCount++ > 100000)
-                            //{
-                            //    UnityEngine.Debug.LogError("Infinite Loop");
-                            //    return null;
-                            //}
                             //Edge e = n.outEdges[j];
-							if (e.toDex == e.fromDex) //1-cycle R, so we add R* to selfEdges
+                            if (e.toDex == e.fromDex) //1-cycle R, so we add R* to selfEdges
 							{
 								selfEdges = Union.Of(selfEdges, Star.Of(e.tree));
 								edgesToRemove.Add(e);
@@ -675,8 +749,8 @@ namespace DCN.FiniteAutomata{
 					//Thus, 1	a:1 b:2 becomes 1	a*b:2
 					foreach(Edge e in n.outEdges)
 					{
-						//Edge e = n.outEdges[j];
-						if (e.toDex != e.fromDex)
+                        //Edge e = n.outEdges[j];
+                        if (e.toDex != e.fromDex)
 						{
 							e.tree = Concat.Of(selfEdges, e.tree);
 						}
@@ -689,24 +763,20 @@ namespace DCN.FiniteAutomata{
 					return null;
 				}
 				if (changed) continue;
-                //Now we should have no self loops, so other ops are safe
-				
+				//Now we should have no self loops, so other ops are safe
+
+				iterCount = 0;
 				//Resolve chains
 				foreach(Node n in nodes)
 				{
-					//Node n = nodes[i];
-					if (!n.start && n.inEdges.Count > 0 && n.outEdges.Count > 0)
+                    //Node n = nodes[i];
+                    if (!n.start && n.inEdges.Count > 0 && n.outEdges.Count > 0)
 					{
 						for(int j = 0; j < n.inEdges.Count; j++)
 						{
 							Edge a = n.inEdges[j];
 							for(int k = 0; k < n.outEdges.Count; k++)
 							{
-                                //if (iterationCount++ > 100000)
-                                //{
-                                //    UnityEngine.Debug.LogError("Infinite Loop");
-                                //    return null;
-                                //}
                                 Edge b = n.outEdges[k];
 								if(j == k) 
 									continue;
@@ -769,13 +839,9 @@ namespace DCN.FiniteAutomata{
 			if (handled.Contains(tree)) //we've been to this node before
 				return true;
 			handled.Add(tree);
+			int iterCount = 0;
 			foreach (OpTree child in tree.GetChildren())
 			{
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite Loop");
-                //    return true;
-                //}
                 if (child.GetChildren().Count == 0)
 					continue; //skip a, b, epsilon
 				if (TreeHasCycles(child, new List<OpTree>(handled)))
@@ -797,36 +863,31 @@ namespace DCN.FiniteAutomata{
 			}
 			TreeNFA nfa = new TreeNFA(this);
 			//First, resolve the transition graph to a NFA
-			//iterationCount = 0;
 			for (int i = 0; i < nfa.edges.Count;) //no i++ so we resolve this edge until it is just a, b, or epsilon
 			{
                 UpdateIndices();
-                //UnityEngine.Debug.Log(nfa.ToString());
-				//if (iterationCount++ > 200000)
-				//{
-				//	UnityEngine.Debug.LogError("Loop was infinite");
-				//	nfa.isValid = false;
-				//	return nfa;
-				//}
-				int newState, newEdge;
+				//UnityEngine.Debug.Log("Current NFA:" + nfa.ToString());
+                int newState, newEdge;
 				Edge e = nfa.edges[i];
 				if(e.tree is Union) { 
 					for(int j = 1; j < e.tree.GetChildren().Count; j++)
 					{
 						nfa.AddEdge(e.from, e.to, e.tree.GetChildren()[j]);
-					}
+						//Debug.Log($"Union child {j} ({e.tree.ToFormalRegexString()}): {nfa}");
+                    }
 					e.tree = e.tree.GetChildren()[0];
 					nfa.edges[i] = e;
-				}
+                    //Debug.Log($"Union child 0 ({e.tree.ToFormalRegexString()}): {nfa}");
+                }
 				else if (e.tree is Concat)
 				{
 					int lastNode = e.fromDex;
 					for (int j = 0; j < e.tree.GetChildren().Count-1; j++)
 					{
-						int nextNode = nfa.AddNode();
+                        int nextNode = nfa.AddNode();
 						nfa.AddEdge(lastNode, nextNode, e.tree.GetChildren()[j]);
 						lastNode = nextNode;
-						//Debug.Log($"Concat child {i}: {nfa}");
+						//Debug.Log($"Concat child {i} ({e.tree.ToFormalRegexString()})");
 					}
 					//Debug.Log(lastNode);
 					nfa.SetEdgeFrom(e, lastNode);
@@ -843,6 +904,7 @@ namespace DCN.FiniteAutomata{
 					nfa.SetEdgeFrom(e, newState);
 					e.tree = ((Star)e.tree).child;
 					nfa.edges[i] = e;
+					//UnityEngine.Debug.Log("Star handled: " + nfa.ToString());
 				}
 				else
 				{
@@ -850,7 +912,7 @@ namespace DCN.FiniteAutomata{
 				}
 			}
 			nfa.UpdateIndices();
-			//UnityEngine.Debug.Log("TG after resolving operations:");
+			//UnityEngine.Debug.Log("NFA after resolving operations:\n" + nfa.ToString());
 			//UnityEngine.Debug.Log(nfa.ToString());
 			//All edges are now a, b, or epsilon
 			//epsilon is not handled yet, since it's easier to handle after
@@ -860,11 +922,6 @@ namespace DCN.FiniteAutomata{
 			Node startState = nfa.nodes[startDex];
 			foreach (Node node in nfa.nodes)
 			{
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite Loop");
-                //    return null;
-                //}
                 if (node.start)
 				{
 					node.start = false;
@@ -872,19 +929,13 @@ namespace DCN.FiniteAutomata{
 				}
 			}
 			startState.start = true;
-            //UnityEngine.Debug.Log("TG after adding extra start state:");
-            //UnityEngine.Debug.Log(nfa.ToString());
+            //UnityEngine.Debug.Log("TG after adding extra start state:\n" + nfa.ToString());
             //Now we resolve epsilon
             List<Edge> toRemove = new List<Edge>();
             List<Node> nodesToRemove = new List<Node>();
 			//Check this
 			for (int i = 0; i < nfa.edges.Count; i++)
 			{
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite Loop");
-                //    return null;
-                //}
                 if (nfa.edges[i].tree is Epsilon)
 				{
 					//We want to remove epsilon edges, but not yet. Doing so may mess with goal transferring
@@ -901,11 +952,6 @@ namespace DCN.FiniteAutomata{
 			//Debug.Log("Resolving epsilon");
             for (int i = 0; i < nfa.edges.Count; i++)
             {
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite Loop");
-                //    return null;
-                //}
                 if (nfa.edges[i].tree is Epsilon) {
 					//UnityEngine.Debug.Log($"Epsilon Edge: {nfa.edges[i].fromDex}→{nfa.edges[i].toDex}");
                     //We want to remove epsilon edges, but not yet. Doing so may mess with goal transferring
@@ -927,11 +973,11 @@ namespace DCN.FiniteAutomata{
                     }
                     foreach (Edge e in epsil.to.outEdges)
 					{
-						//does the edge we want to add already exist?
-						//The edge we want to find is in both e.to.inEdges and epsil.from.outEdges with epsilon
-						//Essentially, an edge from epsil.from to epsil.to
-						//We can detect this by searching e.to.inEdges for edges where fromDex == epsil.fromDex
-						if (e.Equals(epsil)) {
+                        //does the edge we want to add already exist?
+                        //The edge we want to find is in both e.to.inEdges and epsil.from.outEdges with epsilon
+                        //Essentially, an edge from epsil.from to epsil.to
+                        //We can detect this by searching e.to.inEdges for edges where fromDex == epsil.fromDex
+                        if (e.Equals(epsil)) {
 							continue;
 						}
 						if (!nfa.edges.Any(edge => edge.fromDex == epsil.fromDex && edge.toDex == e.toDex && edge.tree.Equals(e.tree)))
@@ -939,13 +985,14 @@ namespace DCN.FiniteAutomata{
 					}
 					foreach (Edge e in epsil.from.inEdges)
 					{
-						//This time, e leads into epsil, so our target edge goes from e.from to epsil.to
-						if (e.Equals(epsil)) {
+                        //This time, e leads into epsil, so our target edge goes from e.from to epsil.to
+                        if (e.Equals(epsil)) {
 							continue;
 						}
 						if(!nfa.edges.Any(edge => edge.fromDex == e.fromDex && edge.toDex == epsil.toDex && edge.tree.Equals(e.tree)))
 							nfa.AddEdge(e.fromDex, epsil.toDex, e.tree);
 					}
+
 				}
 			}
 			//Remove flagged values
@@ -956,15 +1003,9 @@ namespace DCN.FiniteAutomata{
 			//UnityEngine.Debug.Log("NFA after resolving epsilon:");
 			//UnityEngine.Debug.Log(nfa.ToString());
 			bool changed;
-			//iterationCount = 0;
 			do
 			{
 				changed = false;
-				//if(iterationCount++ > 1000)
-				//{
-				//	UnityEngine.Debug.LogError("Infinite Loop Detected");
-				//	return new TreeNFA(false);
-				//}
                 nfa.UpdateIndices();
                 List<int> removedEdgeKeys = new List<int>();
 				//Trim duplicate edges
@@ -972,7 +1013,7 @@ namespace DCN.FiniteAutomata{
 				{
 					for (int j = i + 1; j < nfa.edges.Count; j++) //anything lower, we already checked when i was that value, or is the same edge
 					{
-						if (nfa.edges[i].Equals(nfa.edges[j]) && !removedEdgeKeys.Contains(j) && !removedEdgeKeys.Contains(i)) //can't double remove
+                        if (nfa.edges[i].Equals(nfa.edges[j]) && !removedEdgeKeys.Contains(j) && !removedEdgeKeys.Contains(i)) //can't double remove
 						{
 							toRemove.Add(nfa.edges[j]);
 							changed = true;
@@ -992,11 +1033,6 @@ namespace DCN.FiniteAutomata{
 				//Trim duplicate nodes; two nodes which have the same goal status and same outgoing edges are identical and can be merged
 				for (int i = 0; i < nfa.nodes.Count; i++)
 				{
-                    //if (iterationCount++ > 100000)
-                    //{
-                    //    UnityEngine.Debug.LogError("Infinite Loop");
-                    //    return null;
-                    //}
                     if (nfa.nodes[i].inEdges.Count == 0 && !nfa.nodes[i].start)
 					{
 						nodesToRemove.Add(nfa.nodes[i]);
@@ -1011,13 +1047,7 @@ namespace DCN.FiniteAutomata{
 						{
 							while (b.inEdges.Count > 0)
 							{
-								//if (iterationCount++ > 10000)
-								//{
-								//	UnityEngine.Debug.LogError("Loop was infinite");
-								//	nfa.isValid = false;
-								//	return nfa;
-								//}
-								nfa.SetEdgeTo(b.inEdges[0], i); //removes, so this loop isn't infinite
+                                nfa.SetEdgeTo(b.inEdges[0], i); //removes, so this loop isn't infinite
 							}
 							nodesToRemove.Add(b);
 							if (b.start)
@@ -1035,16 +1065,10 @@ namespace DCN.FiniteAutomata{
 				nfa.UpdateIndices();
 			} while (changed);
 
-			//iterationCount = 0;
 			//Add any missing outgoing edges, black hole state, if needed
 			int bhState = -1;
 			for (int i = 0; i < nfa.nodes.Count; i++)
 			{
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Infinite Loop");
-                //    return null;
-                //}
                 bool foundA = false, foundB = false;
 				foreach (Edge e in nfa.nodes[i].outEdges)
 				{
@@ -1071,13 +1095,7 @@ namespace DCN.FiniteAutomata{
 						continue;
 					while (nfa.nodes[i].inEdges.Count > 0)
 					{
-						//if (iterationCount++ > 10000)
-						//{
-						//	UnityEngine.Debug.LogError("Loop was infinite");
-						//	nfa.isValid = false;
-						//	return nfa;
-						//}
-						nfa.SetEdgeTo(nfa.nodes[i].inEdges[0], bhState);
+                        nfa.SetEdgeTo(nfa.nodes[i].inEdges[0], bhState);
 					}
 					if (nfa.nodes[i].start)
 						nfa.nodes[bhState].start = true;
@@ -1110,17 +1128,10 @@ namespace DCN.FiniteAutomata{
 			int[] startKey = new int[] { startDex };
             frontier.Enqueue(startKey);
 			dfaKeys[startKey] = dfa.AddNode(true, startState.goal);
-            //iterationCount = 0;
 			//UnityEngine.Debug.Log("Converting to DFA");
             while (frontier.Count > 0)
 			{
-                //if (iterationCount++ > 100000)
-                //{
-                //    UnityEngine.Debug.LogError("Loop was infinite");
-                //    nfa.isValid = false;
-                //    return nfa;
-                //}
-				int[] currKey = frontier.Dequeue();
+                int[] currKey = frontier.Dequeue();
 				//UnityEngine.Debug.Log("Current key: " + currKey.Select(x => x.ToString()).Aggregate((x, y) => x + " " + y));
 				
 				SortedDictionary<int, int> aDexes = new SortedDictionary<int, int>(), bDexes = new SortedDictionary<int, int>();
@@ -1179,10 +1190,19 @@ namespace DCN.FiniteAutomata{
 			public bool start = false, goal = false;
             public bool ShouldMerge(Node n)
 			{
-				return !start && !n.start && (goal == n.goal)
+				return /*!start && !n.start &&*/ (goal == n.goal)
 					&& !outEdges.Any(e => !n.outEdges.Contains(e)) 
 					&& !n.outEdges.Any(e => !outEdges.Contains(e));
 			}
+			//Only accepts arguments of A or B
+			public Node ForA()
+			{
+				return outEdges.Where(e => e.tree is A).First().to;
+			}
+			public Node ForB()
+			{
+                return outEdges.Where(e => e.tree is B).First().to;
+            }
 		}
 
 		public class Edge{
